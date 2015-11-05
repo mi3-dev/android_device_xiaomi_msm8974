@@ -37,6 +37,7 @@ static android::Mutex gCameraWrapperLock;
 static camera_module_t *gVendorModule = 0;
 
 static char **fixed_set_params = NULL;
+static char KEY_QC_MORPHO_HDR[] = "morpho-hdr";
 
 static int camera_device_open(const hw_module_t *module, const char *name,
         hw_device_t **device);
@@ -119,6 +120,8 @@ static char *camera_fixup_getparams(int id __attribute__((unused)),
 
 static char *camera_fixup_setparams(int id, const char *settings)
 {
+    bool xiaomiHdr = false;
+
     android::CameraParameters params;
     params.unflatten(android::String8(settings));
 
@@ -128,6 +131,16 @@ static char *camera_fixup_setparams(int id, const char *settings)
 #endif
 
     params.set(android::CameraParameters::KEY_VIDEO_STABILIZATION, "false");
+
+    if (params.get(android::CameraParameters::KEY_SCENE_MODE)) {
+        xiaomiHdr = (!strcmp(params.get(android::CameraParameters::KEY_SCENE_MODE), "hdr"));
+    }
+    if (xiaomiHdr) {
+        params.set(KEY_QC_MORPHO_HDR, "true");
+        params.set(android::CameraParameters::KEY_FLASH_MODE, android::CameraParameters::FLASH_MODE_OFF);
+    } else {
+        params.set(KEY_QC_MORPHO_HDR, "false");
+    }
 
 #if !LOG_NDEBUG
     ALOGV("%s: fixed parameters:", __FUNCTION__);
